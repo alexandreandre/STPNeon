@@ -57,7 +57,7 @@ jobs:
         name: Construire tag d'image backend
         run: |
           P="${{ vars.GCP_PROJECT_ID }}"
-          echo "image=gcr.io/${P}/telko-backend:${DEPLOY_SHA}" >> "$GITHUB_OUTPUT"
+          echo "image=europe-west1-docker.pkg.dev/${P}/telko/telko-backend:${DEPLOY_SHA}" >> "$GITHUB_OUTPUT"
 
       - name: Build & push image backend
         uses: docker/build-push-action@v6
@@ -71,7 +71,7 @@ jobs:
         name: Construire tag d'image frontend
         run: |
           P="${{ vars.GCP_PROJECT_ID }}"
-          echo "image=gcr.io/${P}/telko-frontend:${DEPLOY_SHA}" >> "$GITHUB_OUTPUT"
+          echo "image=europe-west1-docker.pkg.dev/${P}/telko/telko-frontend:${DEPLOY_SHA}" >> "$GITHUB_OUTPUT"
 
       - name: Build & push image frontend
         uses: docker/build-push-action@v6
