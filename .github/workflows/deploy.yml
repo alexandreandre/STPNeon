@@ -113,7 +113,8 @@ jobs:
           service: ${{ env.QDRANT_SERVICE_NAME }}
           region: ${{ env.GCP_REGION }}
           image: qdrant/qdrant:latest
-          flags: --port=6333
+          # Qdrant doit être accessible sans auth pour que le backend puisse s'y connecter
+          flags: --port=6333 --allow-unauthenticated
 
       - id: get-url
         name: Récupérer l'URL Cloud Run de Qdrant
