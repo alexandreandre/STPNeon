@@ -163,7 +163,8 @@ jobs:
           service: ${{ env.BACKEND_SERVICE_NAME }}
           region: ${{ env.GCP_REGION }}
           image: ${{ needs.build-and-push.outputs.backend_image }}
-          flags: --port=8000
+          # Service backend public (accessible depuis le frontend et le navigateur)
+          flags: --port=8000 --allow-unauthenticated
           env_vars: |-
             OPENROUTER_API_KEY=${{ secrets.OPENROUTER_API_KEY }}
             SUPABASE_URL=${{ secrets.SUPABASE_URL }}
@@ -212,7 +213,10 @@ jobs:
           service: ${{ env.FRONTEND_SERVICE_NAME }}
           region: ${{ env.GCP_REGION }}
           image: ${{ needs.build-and-push.outputs.frontend_image }}
-          port: 80
+          # Nginx écoute sur 8080 dans le Dockerfile, on aligne Cloud Run dessus
+          port: 8080
+          # Frontend public pour accès direct via le navigateur
+          flags: --allow-unauthenticated
 
       - name: Afficher URL frontend
         run: |
