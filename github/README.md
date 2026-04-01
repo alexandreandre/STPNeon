@@ -1,6 +1,6 @@
 ## GRAND I : Travailler sur une branche feature
 
-# 0) Pour se mettre à jour avec main 
+# 0) Pour se mettre à jour avec main :
 Mathieu : 
 git stash
 git checkout main
