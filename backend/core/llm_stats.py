@@ -1,28 +1,35 @@
 """
-Agrégation simple des statistiques d'usage LLM pour le comparateur.
+Agrégation des statistiques d'usage LLM pour le comparateur, avec stockage
+dans Supabase pour permettre un pilotage direct des lignes.
 
-Implémentation minimale :
-- journalisation append-only dans un fichier JSONL
+Comportement :
+- enregistrement de chaque run LLM dans la table Supabase `llm_runs`
 - agrégation en mémoire à chaque appel de l'endpoint /api/llm/comparator
 
-Objectif principal : alimenter le tableau « Activité et retours par modèle »
-du frontend, même sans base de données dédiée pour l'instant.
+Si l'appel Supabase échoue, un fallback best-effort sur fichier JSONL local
+(`backend/data/llm_runs.jsonl`) est conservé pour ne pas casser le comparateur.
 """
 
 from __future__ import annotations
 
 import json
+import logging
 import os
 import time
 from collections import defaultdict
 from dataclasses import dataclass
 from typing import Any, Dict, Iterable, List, Tuple
 
+import httpx
+
 from config import settings
 
 
+logger = logging.getLogger(__name__)
+
 _LOG_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
 _LOG_PATH = os.path.join(_LOG_DIR, "llm_runs.jsonl")
+_SUPABASE_TABLE = "llm_runs"
 
 
 @dataclass
@@ -76,17 +83,122 @@ def _ensure_log_dir() -> None:
         pass
 
 
+def _supabase_headers() -> Dict[str, str] | None:
+    """Construit les en-têtes REST Supabase à partir des settings."""
+    base_url = settings.supabase_url or ""
+    api_key = settings.supabase_service_role_key or settings.supabase_anon_key
+    if not base_url or not api_key:
+        return None
+    return {
+        "apikey": api_key,
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+    }
+
+
+def _insert_run_supabase(payload: Dict[str, Any]) -> None:
+    """
+    Insère un run dans Supabase (table `llm_runs`).
+
+    Cette fonction est best-effort : en cas d'erreur, elle logge et laisse
+    la main au fallback fichier.
+    """
+    headers = _supabase_headers()
+    if headers is None:
+        return
+
+    base_url = settings.supabase_url.rstrip("/")
+    url = f"{base_url}/rest/v1/{_SUPABASE_TABLE}"
+
+    try:
+        with httpx.Client(timeout=3.0) as client:
+            resp = client.post(url, headers=headers, json=payload, params={"return": "minimal"})
+        if not resp.is_success:
+            logger.warning(
+                "record_llm_run — échec insertion Supabase (%s): %s",
+                resp.status_code,
+                resp.text[:300],
+            )
+    except Exception as exc:  # pragma: no cover — dépend d'IO externe
+        logger.warning("record_llm_run — erreur réseau Supabase: %s", exc)
+
+
+def _iter_runs_supabase() -> Iterable[LLMRun]:
+    """
+    Lit les runs depuis Supabase (table `llm_runs`).
+
+    Pour piloter les lignes depuis Supabase :
+      - INSERT pour ajouter des runs
+      - DELETE / UPDATE pour corriger ou supprimer des lignes
+    """
+    headers = _supabase_headers()
+    if headers is None:
+        return []
+
+    base_url = settings.supabase_url.rstrip("/")
+    url = f"{base_url}/rest/v1/{_SUPABASE_TABLE}"
+    params = {
+        "select": "provider,model,response_time_ms,first_token_ms,total_tokens,cost_total_usd,ts",
+        "order": "ts.asc",
+        "limit": 100000,
+    }
+
+    try:
+        with httpx.Client(timeout=10.0) as client:
+            resp = client.get(url, headers=headers, params=params)
+        if not resp.is_success:
+            logger.warning(
+                "build_usage_aggregates — échec lecture Supabase (%s): %s",
+                resp.status_code,
+                resp.text[:300],
+            )
+            return []
+
+        rows = resp.json()
+        if not isinstance(rows, list):
+            logger.warning("build_usage_aggregates — réponse Supabase inattendue: %r", rows)
+            return []
+
+        runs: List[LLMRun] = []
+        for row in rows:
+            try:
+                runs.append(
+                    LLMRun(
+                        provider=str(row.get("provider", "openrouter")),
+                        model=str(row.get("model", settings.openrouter_llm_model)),
+                        response_time_ms=int(row.get("response_time_ms") or 0),
+                        first_token_ms=int(row.get("first_token_ms") or 0),
+                        total_tokens=(
+                            int(row.get("total_tokens"))
+                            if isinstance(row.get("total_tokens"), (int, float))
+                            else None
+                        ),
+                        cost_total_usd=(
+                            float(row.get("cost_total_usd"))
+                            if isinstance(row.get("cost_total_usd"), (int, float))
+                            else None
+                        ),
+                        ts=float(row.get("ts") or 0.0),
+                    )
+                )
+            except Exception:
+                continue
+        return runs
+    except Exception as exc:  # pragma: no cover — dépend d'IO externe
+        logger.warning("build_usage_aggregates — erreur réseau Supabase: %s", exc)
+        return []
+
+
 def record_llm_run(meta: Dict[str, Any]) -> None:
     """
-    Enregistre une exécution LLM dans le journal JSONL.
+    Enregistre une exécution LLM dans Supabase, avec fallback fichier local.
 
     Appelée depuis l'endpoint /chat quand le chunk "meta" est reçu.
     """
     run = LLMRun.from_meta(meta)
     if run is None:
         return
-
-    _ensure_log_dir()
 
     payload = {
         "provider": run.provider,
@@ -98,6 +210,11 @@ def record_llm_run(meta: Dict[str, Any]) -> None:
         "ts": run.ts,
     }
 
+    # Écriture Supabase (best-effort)
+    _insert_run_supabase(payload)
+
+    # Fallback local pour ne pas perdre les données si Supabase est indisponible.
+    _ensure_log_dir()
     try:
         with open(_LOG_PATH, "a", encoding="utf-8") as f:
             f.write(json.dumps(payload, ensure_ascii=False) + "\n")
@@ -106,7 +223,7 @@ def record_llm_run(meta: Dict[str, Any]) -> None:
         return
 
 
-def _iter_runs() -> Iterable[LLMRun]:
+def _iter_runs_file() -> Iterable[LLMRun]:
     if not os.path.exists(_LOG_PATH):
         return []
 
@@ -145,6 +262,16 @@ def _iter_runs() -> Iterable[LLMRun]:
         return []
 
     return runs
+
+
+def _iter_runs() -> Iterable[LLMRun]:
+    """
+    Source unique des runs, priorisant Supabase puis le fichier local.
+    """
+    runs = list(_iter_runs_supabase())
+    if runs:
+        return runs
+    return _iter_runs_file()
 
 
 def build_usage_aggregates(
