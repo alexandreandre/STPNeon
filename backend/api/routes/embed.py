@@ -12,8 +12,10 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from config import settings
+from core.pipeline_instance import get_pipeline
 
 router = APIRouter()
+pipeline = get_pipeline()
 
 
 class EmbedBody(BaseModel):
@@ -167,18 +169,40 @@ async def embed_document(
             doc_id, err = await _insert_document(client, access_token, row)
             if err:
                 return JSONResponse(status_code=500, content={"error": err})
-            return {"id": str(doc_id), "embedded": False}
+        else:
+            emb = _normalize_embedding(embedding)
+            row = {
+                "user_id": user_id,
+                "title": body.title,
+                "content": body.content,
+                "source_type": source_type,
+                "file_path": file_path,
+                "embedding": json.dumps(emb),
+            }
+            doc_id, err = await _insert_document(client, access_token, row)
+            if err:
+                return JSONResponse(status_code=500, content={"error": err})
 
-        emb = _normalize_embedding(embedding)
-        row = {
-            "user_id": user_id,
-            "title": body.title,
-            "content": body.content,
-            "source_type": source_type,
-            "file_path": file_path,
-            "embedding": json.dumps(emb),
-        }
-        doc_id, err = await _insert_document(client, access_token, row)
-        if err:
-            return JSONResponse(status_code=500, content={"error": err})
-        return {"id": str(doc_id), "embedded": True}
+        # À ce stade, le document est bien présent dans Supabase.
+        # On le (ré)indexe immédiatement dans Qdrant pour que le RAG y ait accès.
+        try:
+            source_id = f"supabase:{doc_id}"
+            # On supprime d'abord les anciens points éventuels pour ce document,
+            # afin d'éviter les doublons et rendre l'opération idempotente.
+            await pipeline._store.delete_document(source_id)  # type: ignore[attr-defined]
+            await pipeline.ingest_document(
+                text=body.content,
+                metadata={
+                    "source": source_id,
+                    "filename": body.title or file_path or f"doc_{doc_id}",
+                    "page": 1,
+                    "source_type": source_type,
+                    "file_path": file_path,
+                },
+            )
+        except Exception:
+            # On ne casse pas l'API si l'indexation Qdrant échoue : le document reste
+            # disponible côté Supabase et pourra être resynchronisé plus tard.
+            pass
+
+        return {"id": str(doc_id), "embedded": embedding is not None}

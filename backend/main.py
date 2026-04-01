@@ -12,6 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from api.routes import admin_user, chat, embed, feedback, health, llm
 from config import settings
 from core.pipeline_instance import get_pipeline, _pipeline
+from core.supabase_sync import sync_supabase_knowledge_to_qdrant
 
 # Configuration logging basique si rien n'est défini (utile sur Cloud Run)
 logging.basicConfig(
@@ -50,6 +51,19 @@ async def startup():
         logger.info("Initialisation du pipeline RAG (Qdrant + OpenRouter)...")
         _pipeline.init()
         logger.info("Initialisation du pipeline RAG terminée avec succès.")
+        # Sync Supabase -> Qdrant au démarrage pour que le RAG ait immédiatement
+        # accès aux documents déjà présents dans `knowledge_documents`.
+        try:
+            count = await sync_supabase_knowledge_to_qdrant(_pipeline)
+            logger.info(
+                "Startup — sync Supabase -> Qdrant effectuée (%d document(s) indexé(s)).",
+                count,
+            )
+        except Exception as exc:  # pragma: no cover - dépend de l'infra externe
+            logger.exception(
+                "Échec de la sync Supabase -> Qdrant au démarrage (RAG utilisera une collection partielle/vides) : %s",
+                exc,
+            )
     except Exception as exc:  # pragma: no cover - dépend de l'infra externe
         logger.exception("Échec de l'initialisation du pipeline au démarrage : %s", exc)
 

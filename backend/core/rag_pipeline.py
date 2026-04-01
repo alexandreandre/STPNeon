@@ -171,6 +171,29 @@ class RAGPipeline:
         history = self._get_history(conversation_id)
 
         docs = await self._store.similarity_search(message, k=5)
+        logger.info(
+            "RAGPipeline.stream_query — conv=%s | requête='%s...' | %d document(s) de contexte.",
+            conversation_id,
+            (message[:80] + "…") if len(message) > 80 else message,
+            len(docs),
+        )
+        if not docs:
+            logger.warning(
+                "RAGPipeline.stream_query — aucun document retourné par Qdrant pour conv=%s. "
+                "Vérifier l'ingestion (chunks indexés) et la collection '%s'.",
+                conversation_id,
+                self._store._collection if hasattr(self._store, "_collection") else "inconnue",
+            )
+        else:
+            preview = [
+                {
+                    "source": d.metadata.get("source"),
+                    "filename": d.metadata.get("filename") or d.metadata.get("source"),
+                    "page": d.metadata.get("page"),
+                }
+                for d in docs[:5]
+            ]
+            logger.debug("RAGPipeline.stream_query — premiers documents de contexte: %s", preview)
         # Usage d'embedding pour la requête (API /embeddings OpenRouter), si disponible
         embed_usage = self._store.get_last_embeddings_usage() or {}
         context = _format_context(docs)
