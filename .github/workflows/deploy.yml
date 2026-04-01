@@ -173,7 +173,8 @@ jobs:
             SUPABASE_URL=${{ secrets.SUPABASE_URL }}
             SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
             SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}
-            QDRANT_URL=${{ needs.deploy-qdrant.outputs.qdrant_url }}
+            # QDRANT_URL forcé via les variables GitHub pour éviter les divergences
+            QDRANT_URL=${{ vars.QDRANT_URL }}
             ALLOWED_ORIGINS=${{ vars.ALLOWED_ORIGINS }}
             LLM_PROVIDER=openrouter
           env_vars_update_strategy: merge
