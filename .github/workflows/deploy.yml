@@ -163,7 +163,7 @@ jobs:
           service: ${{ env.BACKEND_SERVICE_NAME }}
           region: ${{ env.GCP_REGION }}
           image: ${{ needs.build-and-push.outputs.backend_image }}
-          port: 8000
+          flags: --port=8000
           env_vars: |-
             OPENROUTER_API_KEY=${{ secrets.OPENROUTER_API_KEY }}
             SUPABASE_URL=${{ secrets.SUPABASE_URL }}
