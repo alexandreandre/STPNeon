@@ -216,6 +216,10 @@ class QdrantStore:
         try:
             self._client = QdrantClient(
                 url=settings.qdrant_url,
+                # Important pour les déploiements "managés" (Cloud Run, proxies, etc.) :
+                # si on ne précise pas port=None, le client ajoute par défaut :6333,
+                # ce qui provoque des timeouts sur une URL HTTPS publique sans ce port.
+                port=None,
                 api_key=settings.qdrant_api_key or None,
             )
         except Exception as exc:  # pragma: no cover - dépend de l'infra externe
