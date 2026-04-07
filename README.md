@@ -7,7 +7,7 @@ Les utilisateurs interrogent en langage naturel la base documentaire interne, et
 
 ---
 
-## Vue d'ensemble fonctionnelle 
+## Vue d'ensemble fonctionnelle :
 
 1. **Un collaborateur ouvre l'interface web STPNeon** (frontend React).
 2. **Il pose une question** en français sur un document, un process interne, une politique RH, etc.
