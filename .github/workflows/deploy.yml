@@ -159,23 +159,6 @@ jobs:
             exit 1
           fi
 
-      - name: Open WebUI — secrets pour le sélecteur de modèles
-        env:
-          OPENWEBUI_BASE_URL: ${{ secrets.OPENWEBUI_BASE_URL }}
-          OPENWEBUI_API_KEY: ${{ secrets.OPENWEBUI_API_KEY }}
-          OPENWEBUI_MODEL: ${{ secrets.OPENWEBUI_MODEL }}
-        run: |
-          b=$(printf '%s' "${OPENWEBUI_BASE_URL:-}" | tr -d '[:space:]')
-          k=$(printf '%s' "${OPENWEBUI_API_KEY:-}" | tr -d '[:space:]')
-          m=$(printf '%s' "${OPENWEBUI_MODEL:-}" | tr -d '[:space:]')
-          c=0
-          [ -n "$b" ] && c=$((c + 1))
-          [ -n "$k" ] && c=$((c + 1))
-          [ -n "$m" ] && c=$((c + 1))
-          if [ "$c" -gt 0 ] && [ "$c" -lt 3 ]; then
-            echo "::warning::Open WebUI incomplet ($c/3). Il faut OPENWEBUI_BASE_URL, OPENWEBUI_API_KEY et OPENWEBUI_MODEL dans les secrets (env production) pour afficher « STPNeon OpenWebUI » dans l’assistant et le comparateur."
-          fi
-
       - name: Deploy backend on Cloud Run
         uses: google-github-actions/deploy-cloudrun@v2
         with:
@@ -184,15 +167,10 @@ jobs:
           region: ${{ env.GCP_REGION }}
           image: ${{ needs.build-and-push.outputs.backend_image }}
           # Service backend public (accessible depuis le frontend et le navigateur)
-          # --timeout doit rester >= LLM_TIMEOUT (Open WebUI / RAG peut dépasser 120 s).
+          # --timeout doit rester >= LLM_TIMEOUT (requêtes LLM / RAG peuvent être longues).
           flags: --port=8000 --allow-unauthenticated --timeout=${{ vars.BACKEND_REQUEST_TIMEOUT_SECONDS || '900' }}
           env_vars: |-
             OPENROUTER_API_KEY=${{ secrets.OPENROUTER_API_KEY }}
-            OPENWEBUI_BASE_URL=${{ secrets.OPENWEBUI_BASE_URL }}
-            OPENWEBUI_API_KEY=${{ secrets.OPENWEBUI_API_KEY }}
-            OPENWEBUI_MODEL=${{ secrets.OPENWEBUI_MODEL }}
-            OPENWEBUI_KNOWLEDGE_COLLECTION_ID=${{ secrets.OPENWEBUI_KNOWLEDGE_COLLECTION_ID }}
-            OPENWEBUI_CHAT_FILES_JSON=${{ secrets.OPENWEBUI_CHAT_FILES_JSON }}
             SUPABASE_URL=${{ secrets.SUPABASE_URL }}
             SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
             SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}

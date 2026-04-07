@@ -47,17 +47,6 @@ async def startup():
         bool(os.getenv("SUPABASE_URL")),
         bool(os.getenv("OPENROUTER_API_KEY")),
     )
-    ow_base = bool((settings.openwebui_base_url or "").strip())
-    ow_key = bool((settings.openwebui_api_key or "").strip())
-    ow_model = bool((settings.openwebui_model or "").strip())
-    logger.info(
-        "Open WebUI (entrée « STPNeon OpenWebUI » dans l’UI) : %s — "
-        "champs non vides base_url=%s api_key=%s model=%s",
-        "oui" if (ow_base and ow_key and ow_model) else "non",
-        ow_base,
-        ow_key,
-        ow_model,
-    )
     try:
         logger.info("Initialisation du pipeline RAG (Qdrant + OpenRouter)...")
         _pipeline.init()

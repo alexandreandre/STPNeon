@@ -26,8 +26,8 @@ class Settings(BaseSettings):
     qdrant_collection_name: str = "stpneon_knowledge"
     qdrant_api_key: str = ""
 
-    # --- LLM (timeouts HTTP client : ollama, openrouter, openwebui) ------------
-    # Secondes ; augmenter si Open WebUI / RAG ou modèles lents dépassent le délai.
+    # --- LLM (timeouts HTTP client : ollama, openrouter, etc.) -----------------
+    # Secondes ; augmenter si RAG ou modèles lents dépassent le délai.
     llm_timeout: float = 120.0
 
     # --- OpenRouter (LLM + embeddings via API) ---------------------------------
@@ -39,20 +39,6 @@ class Settings(BaseSettings):
     openrouter_llm_model: str = "openai/gpt-4o-mini"
     # Modèle utilisé pour les embeddings (RAG) — 1536 dims
     openrouter_embeddings_model: str = "openai/text-embedding-3-small"
-
-    # --- Open WebUI (API compatible OpenAI, instance externe) ------------------
-    # Ex. https://votre-serveur.example.com — sans slash final obligatoire
-    openwebui_base_url: str = ""
-    openwebui_api_key: str = ""
-    # Nom du modèle tel qu’exposé par Open WebUI (sélecteur de modèles dans l’UI)
-    openwebui_model: str = ""
-    # Chemin relatif sous la base (par défaut l’endpoint documenté Open WebUI)
-    openwebui_chat_path: str = "/api/chat/completions"
-    # RAG côté Open WebUI : ID d’une collection « Knowledge » (UI) → envoyé en `files` sur /api/chat/completions
-    openwebui_knowledge_collection_id: str = ""
-    # Alternative avancée : JSON du tableau `files`, ex. [{"type":"collection","id":"..."},{"type":"file","id":"..."}]
-    # Si non vide, il remplace openwebui_knowledge_collection_id.
-    openwebui_chat_files_json: str = ""
 
     # --- Azure AD --------------------------------------------------------------
     azure_tenant_id: str = ""

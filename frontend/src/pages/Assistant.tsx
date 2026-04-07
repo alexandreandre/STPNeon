@@ -114,12 +114,6 @@ function formatPricingPer1mUsd(
 
 const getChatUrl = () => `${getApiBaseUrl()}/chat`;
 
-const STPNEON_OPENWEBUI_MODEL_ID = "stpneon/openwebui";
-
-function chatProviderForModel(modelId: string): string {
-  return modelId === STPNEON_OPENWEBUI_MODEL_ID ? "openwebui" : "openrouter";
-}
-
 /** Dernier modèle OpenRouter choisi ou ayant servi à une réponse réussie (préféré au default API). */
 const LAST_OPENROUTER_MODEL_KEY = "stpneon_last_openrouter_model";
 
@@ -550,7 +544,7 @@ export default function Assistant() {
           messages: apiMessages,
           role_name: role?.role_name,
           department: profile?.department,
-          provider: chatProviderForModel(selectedModel),
+          provider: "openrouter",
           model: selectedModel,
         }),
       });
@@ -651,7 +645,7 @@ export default function Assistant() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          provider: chatProviderForModel(selectedModel),
+          provider: "openrouter",
           model: selectedModel,
           prompt: userMessage,
           response,
@@ -687,7 +681,6 @@ export default function Assistant() {
     if (!modelIdOrName) return "Modèle OpenRouter";
     const fromList = availableModels.find((m) => m.id === modelIdOrName || m.name === modelIdOrName);
     if (fromList?.name) return fromList.name;
-    if (modelIdOrName === STPNEON_OPENWEBUI_MODEL_ID) return "STPNeon OpenWebUI";
     if (modelIdOrName.startsWith("openrouter/")) {
       const raw = modelIdOrName.replace("openrouter/", "");
       return raw

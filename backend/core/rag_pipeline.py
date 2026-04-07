@@ -13,7 +13,6 @@ from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from core.llm import BaseLLMProvider, LLMProviderError, get_llm_provider
-from core.llm.openwebui import OpenWebUIProvider
 from core.vector_store import QdrantStore
 
 logger = logging.getLogger(__name__)
@@ -172,63 +171,40 @@ class RAGPipeline:
         history = self._get_history(conversation_id)
 
         active_llm = llm or self._llm
-        use_openwebui_kb = isinstance(active_llm, OpenWebUIProvider) and bool(
-            getattr(active_llm, "chat_files", None)
-        )
 
-        if use_openwebui_kb:
-            docs = []
-            embed_usage = {}
-            context = ""
-            logger.info(
-                "RAGPipeline.stream_query — conv=%s | requête='%s...' | RAG Open WebUI (collections/fichiers), Qdrant STPNeon ignoré.",
+        docs = await self._store.similarity_search(message, k=5)
+        logger.info(
+            "RAGPipeline.stream_query — conv=%s | requête='%s...' | %d document(s) de contexte.",
+            conversation_id,
+            (message[:80] + "…") if len(message) > 80 else message,
+            len(docs),
+        )
+        if not docs:
+            logger.warning(
+                "RAGPipeline.stream_query — aucun document retourné par Qdrant pour conv=%s. "
+                "Vérifier l'ingestion (chunks indexés) et la collection '%s'.",
                 conversation_id,
-                (message[:80] + "…") if len(message) > 80 else message,
-            )
-            system_lead = (
-                "Tu es un assistant interne pour une société de télécom et tu réponds TOUJOURS en français. "
-                "Open WebUI enrichit cette requête avec des extraits issus de la base de connaissances configurée "
-                "sur l’instance (paramètre `files` de l’API). Réponds en t’appuyant sur le contexte que Open WebUI "
-                "injecte ; si l’information n’y figure pas, dis-le clairement.\n\n"
+                self._store._collection if hasattr(self._store, "_collection") else "inconnue",
             )
         else:
-            docs = await self._store.similarity_search(message, k=5)
-            logger.info(
-                "RAGPipeline.stream_query — conv=%s | requête='%s...' | %d document(s) de contexte.",
-                conversation_id,
-                (message[:80] + "…") if len(message) > 80 else message,
-                len(docs),
-            )
-            if not docs:
-                logger.warning(
-                    "RAGPipeline.stream_query — aucun document retourné par Qdrant pour conv=%s. "
-                    "Vérifier l'ingestion (chunks indexés) et la collection '%s'.",
-                    conversation_id,
-                    self._store._collection if hasattr(self._store, "_collection") else "inconnue",
-                )
-            else:
-                preview = [
-                    {
-                        "source": d.metadata.get("source"),
-                        "filename": d.metadata.get("filename") or d.metadata.get("source"),
-                        "page": d.metadata.get("page"),
-                    }
-                    for d in docs[:5]
-                ]
-                logger.debug("RAGPipeline.stream_query — premiers documents de contexte: %s", preview)
-            embed_usage = self._store.get_last_embeddings_usage() or {}
-            context = _format_context(docs)
-            system_lead = (
-                "Tu es un assistant interne pour une société de télécom et tu réponds TOUJOURS en français. "
-                "Réponds UNIQUEMENT à partir des documents fournis ci‑dessous. "
-                "Si une information n'est pas explicitement présente dans les documents, dis-le clairement et explique ce qu'il manque.\n\n"
-            )
-
-        doc_block = (
-            f"\n\n=== DOCUMENTS PERTINENTS (base documentaire STPNeon) ===\n{context}"
-            if not use_openwebui_kb
-            else ""
+            preview = [
+                {
+                    "source": d.metadata.get("source"),
+                    "filename": d.metadata.get("filename") or d.metadata.get("source"),
+                    "page": d.metadata.get("page"),
+                }
+                for d in docs[:5]
+            ]
+            logger.debug("RAGPipeline.stream_query — premiers documents de contexte: %s", preview)
+        embed_usage = self._store.get_last_embeddings_usage() or {}
+        context = _format_context(docs)
+        system_lead = (
+            "Tu es un assistant interne pour une société de télécom et tu réponds TOUJOURS en français. "
+            "Réponds UNIQUEMENT à partir des documents fournis ci‑dessous. "
+            "Si une information n'est pas explicitement présente dans les documents, dis-le clairement et explique ce qu'il manque.\n\n"
         )
+
+        doc_block = f"\n\n=== DOCUMENTS PERTINENTS (base documentaire STPNeon) ===\n{context}"
 
         messages = [
             {
@@ -285,7 +261,7 @@ class RAGPipeline:
         )
 
         # Chunk final : toujours émettre les métadonnées (latences / journalisation), même si le
-        # provider ne renvoie pas d'usage tokenisé (ex. certaines API Open WebUI en streaming).
+        # provider ne renvoie pas d'usage tokenisé en streaming.
         embed_tokens = {
             "prompt_tokens": embed_usage.get("prompt_tokens"),
             "total_tokens": embed_usage.get("total_tokens"),

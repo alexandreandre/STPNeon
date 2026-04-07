@@ -21,22 +21,6 @@ export interface RelevantModelGuideRow {
 
 export const RELEVANT_MODEL_GUIDE: RelevantModelGuideRow[] = [
   {
-    order: -1,
-    matchPrefixes: ["stpneon/openwebui"],
-    label: "STPNeon OpenWebUI",
-    vendor: "Open WebUI (instance STPNeon)",
-    kind: "proprietary_api",
-    hideApiPricing: true,
-    strengths: [
-      "Même contrat fonctionnel que l’API OpenAI, clé Bearer gérée dans Open WebUI",
-      "Modèle et garde-fous choisis sur votre instance (auto‑hébergée ou dédiée)",
-    ],
-    weaknesses: [
-      "Coût et capacités dépendent entièrement de l’infra derrière Open WebUI",
-      "Pas de grille tarifaire API publique — pilotage interne",
-    ],
-  },
-  {
     order: 0,
     matchPrefixes: ["openai/gpt-4o-mini"],
     label: "GPT-4o Mini",
