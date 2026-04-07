@@ -181,7 +181,7 @@ class RAGPipeline:
             embed_usage = {}
             context = ""
             logger.info(
-                "RAGPipeline.stream_query — conv=%s | requête='%s...' | RAG Open WebUI (collections/fichiers), Qdrant Telko ignoré.",
+                "RAGPipeline.stream_query — conv=%s | requête='%s...' | RAG Open WebUI (collections/fichiers), Qdrant STPNeon ignoré.",
                 conversation_id,
                 (message[:80] + "…") if len(message) > 80 else message,
             )
@@ -225,7 +225,7 @@ class RAGPipeline:
             )
 
         doc_block = (
-            f"\n\n=== DOCUMENTS PERTINENTS (base documentaire Telko) ===\n{context}"
+            f"\n\n=== DOCUMENTS PERTINENTS (base documentaire STPNeon) ===\n{context}"
             if not use_openwebui_kb
             else ""
         )
@@ -345,10 +345,10 @@ if __name__ == "__main__":
         pipeline.init()
         await pipeline.ingest_document(
             text=(
-                "Le projet Telko est une plateforme de gestion documentaire interne. "
+                "Le projet STPNeon est une plateforme de gestion documentaire interne. "
                 "Elle permet d'indexer des fichiers SharePoint et de les interroger via un assistant IA."
             ),
-            metadata={"source": "test-telko", "filename": "presentation_telko.pdf", "page": 1},
+            metadata={"source": "test-stpneon", "filename": "presentation_stpneon.pdf", "page": 1},
         )
         await pipeline.ingest_document(
             text=(
@@ -364,7 +364,7 @@ if __name__ == "__main__":
         print("\n=== TEST stream_query() ===")
         tokens: list[str] = []
         async for token in pipeline.stream_query(
-            message="Qu'est-ce que Telko ?",
+            message="Qu'est-ce que STPNeon ?",
             conversation_id="conv-test-001",
             user_id="user-001",
         ):
@@ -388,7 +388,7 @@ if __name__ == "__main__":
 
     async def cleanup() -> None:
         from qdrant_client.models import FieldCondition, Filter, FilterSelector, MatchValue
-        for source_id in ("test-telko", "test-rh"):
+        for source_id in ("test-stpneon", "test-rh"):
             pipeline._store._client.delete(
                 collection_name=settings.qdrant_collection_name,
                 points_selector=FilterSelector(

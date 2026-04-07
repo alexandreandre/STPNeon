@@ -1,4 +1,4 @@
-# Git Workflow — Projet Telko
+# Git Workflow — Projet STPNeon
 
 ## Branches
 
@@ -95,6 +95,6 @@ git push
 Après un `git push`, GitHub affiche un lien direct :
 ```
 remote: Create a pull request for 'dev-mathieu' on GitHub by visiting:
-remote:      https://github.com/alexandreandre/telko/pull/new/dev-mathieu
+remote:      https://github.com/alexandreandre/stpneon/pull/new/dev-mathieu
 ```
 Clique dessus pour ouvrir la PR vers `main`.

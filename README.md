@@ -1,15 +1,15 @@
-# Telko — Assistant documentaire interne
+# STPNeon — Assistant documentaire interne
 
 Plateforme d'assistance IA pour les employés d'une société de télécom.
 Les utilisateurs interrogent en langage naturel la base documentaire interne, et reçoivent une réponse en français, argumentée et sourcée.
 
-**État actuel de l’infra :** l’**authentification** des utilisateurs et le **stockage** des fichiers / métadonnées documentaires passent par **Supabase** (Auth, Storage, PostgreSQL). Telko **ne s’appuie pas sur Azure AD** pour la connexion des utilisateurs **ni sur un stockage Azure** (Blob, etc.) pour les documents. Une intégration **SharePoint** optionnelle peut, elle seule, exiger une application **Microsoft Entra ID** (identifiants « machine à machine » pour Microsoft Graph), distincte de l’auth utilisateur de l’app.
+**État actuel de l’infra :** l’**authentification** des utilisateurs et le **stockage** des fichiers / métadonnées documentaires passent par **Supabase** (Auth, Storage, PostgreSQL). STPNeon **ne s’appuie pas sur Azure AD** pour la connexion des utilisateurs **ni sur un stockage Azure** (Blob, etc.) pour les documents. Une intégration **SharePoint** optionnelle peut, elle seule, exiger une application **Microsoft Entra ID** (identifiants « machine à machine » pour Microsoft Graph), distincte de l’auth utilisateur de l’app.
 
 ---
 
 ## Vue d'ensemble fonctionnelle 
 
-1. **Un collaborateur ouvre l'interface web Telko** (frontend React).
+1. **Un collaborateur ouvre l'interface web STPNeon** (frontend React).
 2. **Il pose une question** en français sur un document, un process interne, une politique RH, etc.
 3. **Le backend FastAPI reçoit la requête** et :
    - récupère le **contexte documentaire** : documents pertinents issus de Supabase (base actuelle) et/ou de Qdrant (RAG).
@@ -21,7 +21,7 @@ Les utilisateurs interrogent en langage naturel la base documentaire interne, et
    - les métadonnées d'usage (tokens, coût estimé, temps de réponse) ;
    - les documents sources qui ont servi au raisonnement.
 
-En production, Telko est pensé comme un **assistant centralisé** qui s'appuie sur :
+En production, STPNeon est pensé comme un **assistant centralisé** qui s'appuie sur :
 - **Supabase** pour l’auth utilisateurs, le stockage des fichiers, et les documents structurés (`knowledge_documents`, etc.) ;
 - **Qdrant** comme base vectorielle (RAG) pour la recherche sémantique ;
 - **OpenRouter** comme passerelle vers les modèles LLM et embeddings.
@@ -50,7 +50,7 @@ En production, Telko est pensé comme un **assistant centralisé** qui s'appuie 
 - **Synchronisation automatique SharePoint** *(optionnelle — uniquement si vous configurez Microsoft Graph / Entra ID)* :
   - planification via **APScheduler** ;
   - récupération des nouveaux documents / mises à jour via **Microsoft Graph** ;
-  - ré-indexation transparente côté Telko.
+  - ré-indexation transparente côté STPNeon.
 
 ### Administration (exposition technique)
 
@@ -94,7 +94,7 @@ Frontend React (Vite, Tailwind, shadcn-ui)
 Backend FastAPI (Python)
     │
     ├── Supabase       ──► Auth, Storage, knowledge_documents (pas d’Azure pour auth / fichiers)
-    ├── Qdrant         ──► collection telko_knowledge (vecteurs RAG)
+    ├── Qdrant         ──► collection stpneon_knowledge (vecteurs RAG)
     ├── OpenRouter     ──► LLM (chat) + embeddings (RAG, stats coût/token)
     └── Microsoft Graph (SharePoint, optionnel) ──► sync automatique si configuré
 ```
@@ -194,14 +194,14 @@ SUPABASE_ANON_KEY=...
 
 # OpenRouter (LLM + embeddings via API)
 OPENROUTER_API_KEY=...
-OPENROUTER_SITE_URL=https://telko.your-company.com
-OPENROUTER_APP_TITLE=Telko Assistant
+OPENROUTER_SITE_URL=https://stpneon.your-company.com
+OPENROUTER_APP_TITLE=STPNeon Assistant
 OPENROUTER_LLM_MODEL=openai/gpt-4o-mini
 OPENROUTER_EMBEDDINGS_MODEL=openai/text-embedding-3-small
 
 # Qdrant (vector store RAG)
 QDRANT_URL=https://your-qdrant-endpoint    # ou http://localhost:6333 en dev
-QDRANT_COLLECTION_NAME=telko_knowledge
+QDRANT_COLLECTION_NAME=stpneon_knowledge
 QDRANT_API_KEY=...
 
 # CORS (origines autorisées pour le frontend)
@@ -210,7 +210,7 @@ ALLOWED_ORIGINS=http://localhost:5173,http://localhost:8080
 
 ### Optionnel — synchronisation SharePoint (Microsoft Graph)
 
-Uniquement si vous activez la sync automatique depuis SharePoint. Les identifiants servent au **flux client credentials** vers Graph (compte de service), pas à l’auth des utilisateurs Telko.
+Uniquement si vous activez la sync automatique depuis SharePoint. Les identifiants servent au **flux client credentials** vers Graph (compte de service), pas à l’auth des utilisateurs STPNeon.
 
 ```env
 AZURE_TENANT_ID=...
@@ -294,7 +294,7 @@ En production, vous pouvez :
 ## Structure du dépôt
 
 ```text
-telko/
+stpneon/
 ├── backend/
 │   ├── api/
 │   │   └── routes/
@@ -359,9 +359,9 @@ python -m backend.scripts.test_llm
 | **Stockage fichiers (UI / upload)** | Supabase Storage |
 | **Auth** | Supabase Auth (JWT côté frontend et routes protégées du backend) |
 | **Ingestion fichiers** | PyMuPDF, python-docx, python-pptx, pytesseract |
-| **Sync documents** | *(optionnel)* Microsoft Graph + APScheduler (SharePoint → Telko) |
+| **Sync documents** | *(optionnel)* Microsoft Graph + APScheduler (SharePoint → STPNeon) |
 | **Comparateur LLM** | Route `/api/llm/comparator` + page React `LLMComparator` |
 | **Observabilité coût/perf LLM** | Agrégation des `usage` OpenRouter (tokens + coût) côté backend |
 | **Conteneurisation** | Docker, Docker Compose |
 
-Telko est conçu pour fonctionner aussi bien **en dev local** (backend, frontend, Qdrant, OpenRouter, Supabase) qu’**en prod** (services managés). La synchro **SharePoint** est **optionnelle** ; c’est la seule partie du dépôt qui utilise des identifiants **Microsoft Entra ID** pour Microsoft Graph.
+STPNeon est conçu pour fonctionner aussi bien **en dev local** (backend, frontend, Qdrant, OpenRouter, Supabase) qu’**en prod** (services managés). La synchro **SharePoint** est **optionnelle** ; c’est la seule partie du dépôt qui utilise des identifiants **Microsoft Entra ID** pour Microsoft Graph.

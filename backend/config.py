@@ -23,8 +23,12 @@ class Settings(BaseSettings):
 
     # --- Qdrant ----------------------------------------------------------------
     qdrant_url: str = "http://localhost:6333"
-    qdrant_collection_name: str = "telko_knowledge"
+    qdrant_collection_name: str = "stpneon_knowledge"
     qdrant_api_key: str = ""
+
+    # --- LLM (timeouts HTTP client : ollama, openrouter, openwebui) ------------
+    # Secondes ; augmenter si Open WebUI / RAG ou modèles lents dépassent le délai.
+    llm_timeout: float = 120.0
 
     # --- OpenRouter (LLM + embeddings via API) ---------------------------------
     openrouter_api_key: str = ""

@@ -1,4 +1,4 @@
-# Dépendances Python du backend Telko.
+# Dépendances Python du backend STPNeon.
 # Installer avec : pip install -r requirements.txt
 
 fastapi>=0.110

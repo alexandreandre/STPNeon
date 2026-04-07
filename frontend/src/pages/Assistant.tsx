@@ -114,14 +114,14 @@ function formatPricingPer1mUsd(
 
 const getChatUrl = () => `${getApiBaseUrl()}/chat`;
 
-const TELKO_OPENWEBUI_MODEL_ID = "telko/openwebui";
+const STPNEON_OPENWEBUI_MODEL_ID = "stpneon/openwebui";
 
 function chatProviderForModel(modelId: string): string {
-  return modelId === TELKO_OPENWEBUI_MODEL_ID ? "openwebui" : "openrouter";
+  return modelId === STPNEON_OPENWEBUI_MODEL_ID ? "openwebui" : "openrouter";
 }
 
 /** Dernier modèle OpenRouter choisi ou ayant servi à une réponse réussie (préféré au default API). */
-const LAST_OPENROUTER_MODEL_KEY = "telko_last_openrouter_model";
+const LAST_OPENROUTER_MODEL_KEY = "stpneon_last_openrouter_model";
 
 function readPersistedOpenRouterModel(): string | null {
   try {
@@ -291,7 +291,7 @@ export default function Assistant() {
 
   // Au montage, on restaure la dernière conversation active si elle existe
   useEffect(() => {
-    const savedId = window.localStorage.getItem("telko_active_conversation_id");
+    const savedId = window.localStorage.getItem("stpneon_active_conversation_id");
     if (savedId) {
       setActiveConvId(savedId);
       loadMessages(savedId);
@@ -301,9 +301,9 @@ export default function Assistant() {
   // Persistance locale des métadonnées de messages et des notations par conversation
   useEffect(() => {
     if (!activeConvId) return;
-    const metasRaw = window.localStorage.getItem(`telko_message_metas_${activeConvId}`);
-    const ratingsRaw = window.localStorage.getItem(`telko_thumbs_${activeConvId}`);
-    const ratingsSentRaw = window.localStorage.getItem(`telko_thumbs_sent_${activeConvId}`);
+    const metasRaw = window.localStorage.getItem(`stpneon_message_metas_${activeConvId}`);
+    const ratingsRaw = window.localStorage.getItem(`stpneon_thumbs_${activeConvId}`);
+    const ratingsSentRaw = window.localStorage.getItem(`stpneon_thumbs_sent_${activeConvId}`);
     if (metasRaw) {
       try {
         setMessageMetas(JSON.parse(metasRaw));
@@ -343,40 +343,40 @@ export default function Assistant() {
   useEffect(() => {
     if (!activeConvId) return;
     window.localStorage.setItem(
-      `telko_message_metas_${activeConvId}`,
+      `stpneon_message_metas_${activeConvId}`,
       JSON.stringify(messageMetas),
     );
   }, [activeConvId, messageMetas]);
 
   useEffect(() => {
     if (!activeConvId) return;
-    window.localStorage.setItem(`telko_thumbs_${activeConvId}`, JSON.stringify(ratings));
+    window.localStorage.setItem(`stpneon_thumbs_${activeConvId}`, JSON.stringify(ratings));
   }, [activeConvId, ratings]);
 
   useEffect(() => {
     if (!activeConvId) return;
     window.localStorage.setItem(
-      `telko_thumbs_sent_${activeConvId}`,
+      `stpneon_thumbs_sent_${activeConvId}`,
       JSON.stringify(ratingsSent),
     );
   }, [activeConvId, ratingsSent]);
 
   const selectConversation = (convId: string) => {
     setActiveConvId(convId);
-    window.localStorage.setItem("telko_active_conversation_id", convId);
+    window.localStorage.setItem("stpneon_active_conversation_id", convId);
     loadMessages(convId);
   };
 
   const startNewConversation = () => {
     if (activeConvId) {
-      window.localStorage.removeItem(`telko_message_metas_${activeConvId}`);
-      window.localStorage.removeItem(`telko_thumbs_${activeConvId}`);
-      window.localStorage.removeItem(`telko_thumbs_sent_${activeConvId}`);
-      window.localStorage.removeItem(`telko_ratings_${activeConvId}`);
-      window.localStorage.removeItem(`telko_ratings_sent_${activeConvId}`);
+      window.localStorage.removeItem(`stpneon_message_metas_${activeConvId}`);
+      window.localStorage.removeItem(`stpneon_thumbs_${activeConvId}`);
+      window.localStorage.removeItem(`stpneon_thumbs_sent_${activeConvId}`);
+      window.localStorage.removeItem(`stpneon_ratings_${activeConvId}`);
+      window.localStorage.removeItem(`stpneon_ratings_sent_${activeConvId}`);
     }
     setActiveConvId(null);
-    window.localStorage.removeItem("telko_active_conversation_id");
+    window.localStorage.removeItem("stpneon_active_conversation_id");
     setMessages([]);
     setMentionedDocs([]);
     setMessageMetas({});
@@ -388,11 +388,11 @@ export default function Assistant() {
     e.stopPropagation();
     await supabase.from("conversations").delete().eq("id", convId);
     if (activeConvId === convId) {
-      window.localStorage.removeItem(`telko_message_metas_${convId}`);
-      window.localStorage.removeItem(`telko_thumbs_${convId}`);
-      window.localStorage.removeItem(`telko_thumbs_sent_${convId}`);
-      window.localStorage.removeItem(`telko_ratings_${convId}`);
-      window.localStorage.removeItem(`telko_ratings_sent_${convId}`);
+      window.localStorage.removeItem(`stpneon_message_metas_${convId}`);
+      window.localStorage.removeItem(`stpneon_thumbs_${convId}`);
+      window.localStorage.removeItem(`stpneon_thumbs_sent_${convId}`);
+      window.localStorage.removeItem(`stpneon_ratings_${convId}`);
+      window.localStorage.removeItem(`stpneon_ratings_sent_${convId}`);
       setActiveConvId(null);
       setMessages([]);
       setMessageMetas({});
@@ -517,7 +517,7 @@ export default function Assistant() {
       }
       convId = data.id;
       setActiveConvId(convId);
-      window.localStorage.setItem("telko_active_conversation_id", convId);
+      window.localStorage.setItem("stpneon_active_conversation_id", convId);
       loadConversations();
     } else {
       await supabase.from("conversations").update({ updated_at: new Date().toISOString() }).eq("id", convId);
@@ -687,7 +687,7 @@ export default function Assistant() {
     if (!modelIdOrName) return "Modèle OpenRouter";
     const fromList = availableModels.find((m) => m.id === modelIdOrName || m.name === modelIdOrName);
     if (fromList?.name) return fromList.name;
-    if (modelIdOrName === TELKO_OPENWEBUI_MODEL_ID) return "Telko OpenWebUI";
+    if (modelIdOrName === STPNEON_OPENWEBUI_MODEL_ID) return "STPNeon OpenWebUI";
     if (modelIdOrName.startsWith("openrouter/")) {
       const raw = modelIdOrName.replace("openrouter/", "");
       return raw

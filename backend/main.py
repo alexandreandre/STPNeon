@@ -21,7 +21,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Telko API", version="1.0.0")
+app = FastAPI(title="STPNeon API", version="1.0.0")
 
 _origins = [o.strip() for o in settings.allowed_origins.split(",") if o.strip()]
 if not _origins:
@@ -40,7 +40,7 @@ app.add_middleware(
 async def startup():
     # Log de debug sur l'environnement (sans afficher les secrets)
     logger.info(
-        "Startup Telko backend — PORT=%s, QDRANT_URL=%s, SUPABASE_URL_defined=%s, "
+        "Startup STPNeon backend — PORT=%s, QDRANT_URL=%s, SUPABASE_URL_defined=%s, "
         "OPENROUTER_API_KEY_defined=%s",
         os.getenv("PORT"),
         os.getenv("QDRANT_URL"),
@@ -51,7 +51,7 @@ async def startup():
     ow_key = bool((settings.openwebui_api_key or "").strip())
     ow_model = bool((settings.openwebui_model or "").strip())
     logger.info(
-        "Open WebUI (entrée « Telko OpenWebUI » dans l’UI) : %s — "
+        "Open WebUI (entrée « STPNeon OpenWebUI » dans l’UI) : %s — "
         "champs non vides base_url=%s api_key=%s model=%s",
         "oui" if (ow_base and ow_key and ow_model) else "non",
         ow_base,

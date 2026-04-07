@@ -375,7 +375,7 @@ if __name__ == "__main__":
             self._ingested: list[dict] = []
             self._deleted: list[str] = []
             self._store = MagicMock()
-            self._store._collection = "telko_test"
+            self._store._collection = "stpneon_test"
             self._store._client = MagicMock()
             # Simule une collection vide (points_count=0)
             mock_info = MagicMock()
@@ -430,7 +430,7 @@ if __name__ == "__main__":
         print("\n=== TEST _sync_full() ===")
         with tempfile.TemporaryDirectory() as tmpdir:
             Path(tmpdir, "introduction.txt").write_text(
-                "Introduction à Telko, plateforme documentaire IA.", encoding="utf-8"
+                "Introduction à STPNeon, plateforme documentaire IA.", encoding="utf-8"
             )
 
             sp = MockSharePoint(tmpdir)

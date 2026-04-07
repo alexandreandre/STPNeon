@@ -16,11 +16,11 @@ from core.llm_stats import build_usage_aggregates
 
 router = APIRouter(prefix="/llm")
 
-# ID stable côté Telko (sélecteur assistant + comparateur + stats) — le nom réel du modèle Open WebUI reste dans OPENWEBUI_MODEL.
-TELKO_OPENWEBUI_CATALOG_ID = "telko/openwebui"
+# ID stable côté STPNeon (sélecteur assistant + comparateur + stats) — le nom réel du modèle Open WebUI reste dans OPENWEBUI_MODEL.
+STPNEON_OPENWEBUI_CATALOG_ID = "stpneon/openwebui"
 
 
-def _telko_openwebui_configured() -> bool:
+def _stpneon_openwebui_configured() -> bool:
     return bool(
         (settings.openwebui_api_key or "").strip()
         and (settings.openwebui_base_url or "").strip()
@@ -28,11 +28,11 @@ def _telko_openwebui_configured() -> bool:
     )
 
 
-def _telko_openwebui_selector_model() -> dict:
+def _stpneon_openwebui_selector_model() -> dict:
     """Entrée format /openrouter/models pour le sélecteur UI."""
     return {
-        "id": TELKO_OPENWEBUI_CATALOG_ID,
-        "name": "Telko OpenWebUI",
+        "id": STPNEON_OPENWEBUI_CATALOG_ID,
+        "name": "STPNeon OpenWebUI",
         "description": "Instance Open WebUI configurée côté infrastructure (API externe).",
         "context_length": 0,
         "pricing": {},
@@ -41,11 +41,11 @@ def _telko_openwebui_selector_model() -> dict:
     }
 
 
-def _telko_openwebui_comparator_catalog_entry() -> dict:
+def _stpneon_openwebui_comparator_catalog_entry() -> dict:
     """Entrée format /comparator model_catalog."""
     return {
-        "id": TELKO_OPENWEBUI_CATALOG_ID,
-        "name": "Telko OpenWebUI",
+        "id": STPNEON_OPENWEBUI_CATALOG_ID,
+        "name": "STPNeon OpenWebUI",
         "open_weights_category": "unknown",
         "context_length": None,
         "context_meta": None,
@@ -339,7 +339,7 @@ def _normalize_pricing(raw: dict | None) -> dict:
 # Ordre d'affichage prioritaire dans le sélecteur (pertinence RAG + français / doc interne).
 # Préfixes d'ID OpenRouter ; les plus spécifiques doivent précéder les plus génériques.
 _CURATED_MODEL_ORDER: list[str] = [
-    "telko/openwebui",
+    "stpneon/openwebui",
     "openai/gpt-4o-mini",
     "openai/gpt-4o-mini-search-preview",
     "google/gemini-3.1-flash-lite-preview",
@@ -480,8 +480,8 @@ async def get_openrouter_models():
 
     models.sort(key=_openrouter_model_sort_key)
 
-    if _telko_openwebui_configured():
-        models.insert(0, _telko_openwebui_selector_model())
+    if _stpneon_openwebui_configured():
+        models.insert(0, _stpneon_openwebui_selector_model())
 
     return {
         "default_model": settings.openrouter_llm_model,
@@ -506,8 +506,8 @@ async def get_llm_comparator():
     raw_models = [m for m in raw_models if not _is_free_or_router_model(m)]
 
     model_catalog: list[dict] = []
-    if _telko_openwebui_configured():
-        model_catalog.append(_telko_openwebui_comparator_catalog_entry())
+    if _stpneon_openwebui_configured():
+        model_catalog.append(_stpneon_openwebui_comparator_catalog_entry())
 
     for m in raw_models:
         mid = m.get("id")

@@ -1,6 +1,6 @@
 # Utiliser le GPU Google Colab comme serveur Ollama
 
-Lance Ollama sur un GPU T4 gratuit et branche le backend Telko dessus via ngrok.
+Lance Ollama sur un GPU T4 gratuit et branche le backend STPNeon dessus via ngrok.
 Utile quand tu n'as pas de GPU local ou que tu veux décharger les inférences du Mac.
 
 ---

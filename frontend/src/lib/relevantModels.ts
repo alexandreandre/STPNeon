@@ -22,9 +22,9 @@ export interface RelevantModelGuideRow {
 export const RELEVANT_MODEL_GUIDE: RelevantModelGuideRow[] = [
   {
     order: -1,
-    matchPrefixes: ["telko/openwebui"],
-    label: "Telko OpenWebUI",
-    vendor: "Open WebUI (instance Telko)",
+    matchPrefixes: ["stpneon/openwebui"],
+    label: "STPNeon OpenWebUI",
+    vendor: "Open WebUI (instance STPNeon)",
     kind: "proprietary_api",
     hideApiPricing: true,
     strengths: [

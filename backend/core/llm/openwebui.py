@@ -63,6 +63,11 @@ class OpenWebUIProvider(BaseLLMProvider):
         path = (settings.openwebui_chat_path or "/api/chat/completions").lstrip("/")
         self._url = urljoin(base, path)
 
+    def _httpx_timeout(self) -> httpx.Timeout:
+        """Lecture jusqu'à `self.timeout` s (premier jeton lent ou réponse complète) ; connexion bornée."""
+        t = float(self.timeout)
+        return httpx.Timeout(connect=min(30.0, t), read=t, write=min(120.0, t), pool=10.0)
+
     def _headers(self) -> dict[str, str]:
         return {
             "Authorization": f"Bearer {self._api_key}",
@@ -78,7 +83,7 @@ class OpenWebUIProvider(BaseLLMProvider):
     async def generate(self, messages: list[dict]) -> str:
         payload = self._payload(messages, stream=False)
         try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
+            async with httpx.AsyncClient(timeout=self._httpx_timeout()) as client:
                 resp = await client.post(self._url, headers=self._headers(), json=payload)
         except httpx.ConnectError as exc:
             raise LLMProviderError(
@@ -100,7 +105,7 @@ class OpenWebUIProvider(BaseLLMProvider):
     ) -> AsyncGenerator[tuple[str | None, OpenWebUIUsage | None], None]:
         payload = self._payload(messages, stream=True)
         try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
+            async with httpx.AsyncClient(timeout=self._httpx_timeout()) as client:
                 async with client.stream(
                     "POST", self._url, headers=self._headers(), json=payload
                 ) as resp:

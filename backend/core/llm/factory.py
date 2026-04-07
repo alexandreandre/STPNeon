@@ -73,7 +73,7 @@ def get_llm_provider(
         instance: BaseLLMProvider = OllamaProvider(
             base_url=settings.ollama_base_url,
             model=resolved_model,
-            timeout=getattr(settings, "llm_timeout", 120.0),
+            timeout=settings.llm_timeout,
         )
     elif provider_name == "openai":
         instance = OpenAIProvider(
@@ -84,14 +84,14 @@ def get_llm_provider(
         instance = OpenRouterProvider(
             api_key=settings.openrouter_api_key,
             model=resolved_model,
-            timeout=getattr(settings, "llm_timeout", 120.0),
+            timeout=settings.llm_timeout,
         )
     elif provider_name == "openwebui":
         instance = OpenWebUIProvider(
             base_url=settings.openwebui_base_url.strip(),
             api_key=settings.openwebui_api_key.strip(),
             model=resolved_model,
-            timeout=getattr(settings, "llm_timeout", 120.0),
+            timeout=settings.llm_timeout,
             chat_files=build_openwebui_chat_files(),
         )
     elif provider_name == "gemini":

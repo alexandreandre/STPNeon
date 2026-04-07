@@ -518,7 +518,7 @@ if __name__ == "__main__":
 
     def test_file_not_found() -> None:
         print("\n=== TEST fichier introuvable ===")
-        docs = parse_file("/tmp/fichier_inexistant_telko.pdf")
+        docs = parse_file("/tmp/fichier_inexistant_stpneon.pdf")
         assert docs == [], f"Attendu [], obtenu {docs}"
         print("OK — retourne [] comme attendu")
 

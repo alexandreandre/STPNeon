@@ -1,4 +1,4 @@
-name: Deploy Telko (Cloud Run + Qdrant + Frontend)
+name: Deploy STPNeon (Cloud Run + Qdrant + Frontend)
 
 on:
   push:
@@ -15,9 +15,9 @@ permissions:
 
 env:
   GCP_REGION: ${{ vars.GCP_REGION || 'europe-west1' }}
-  BACKEND_SERVICE_NAME: ${{ vars.BACKEND_SERVICE_NAME || 'telko-backend' }}
-  QDRANT_SERVICE_NAME: ${{ vars.QDRANT_SERVICE_NAME || 'qdrant-telko' }}
-  FRONTEND_SERVICE_NAME: ${{ vars.FRONTEND_SERVICE_NAME || 'telko-frontend' }}
+  BACKEND_SERVICE_NAME: ${{ vars.BACKEND_SERVICE_NAME || 'stpneon-backend' }}
+  QDRANT_SERVICE_NAME: ${{ vars.QDRANT_SERVICE_NAME || 'qdrant-stpneon' }}
+  FRONTEND_SERVICE_NAME: ${{ vars.FRONTEND_SERVICE_NAME || 'stpneon-frontend' }}
 
 jobs:
   build-and-push:
@@ -57,7 +57,7 @@ jobs:
         name: Construire tag d'image backend
         run: |
           P="${{ vars.GCP_PROJECT_ID }}"
-          echo "image=europe-west1-docker.pkg.dev/${P}/telko/telko-backend:${DEPLOY_SHA}" >> "$GITHUB_OUTPUT"
+          echo "image=europe-west1-docker.pkg.dev/${P}/stpneon/stpneon-backend:${DEPLOY_SHA}" >> "$GITHUB_OUTPUT"
 
       - name: Login Docker à Artifact Registry
         run: |
@@ -76,7 +76,7 @@ jobs:
         name: Construire tag d'image frontend
         run: |
           P="${{ vars.GCP_PROJECT_ID }}"
-          echo "image=europe-west1-docker.pkg.dev/${P}/telko/telko-frontend:${DEPLOY_SHA}" >> "$GITHUB_OUTPUT"
+          echo "image=europe-west1-docker.pkg.dev/${P}/stpneon/stpneon-frontend:${DEPLOY_SHA}" >> "$GITHUB_OUTPUT"
 
       - name: Build & push image frontend
         uses: docker/build-push-action@v6
@@ -173,7 +173,7 @@ jobs:
           [ -n "$k" ] && c=$((c + 1))
           [ -n "$m" ] && c=$((c + 1))
           if [ "$c" -gt 0 ] && [ "$c" -lt 3 ]; then
-            echo "::warning::Open WebUI incomplet ($c/3). Il faut OPENWEBUI_BASE_URL, OPENWEBUI_API_KEY et OPENWEBUI_MODEL dans les secrets (env production) pour afficher « Telko OpenWebUI » dans l’assistant et le comparateur."
+            echo "::warning::Open WebUI incomplet ($c/3). Il faut OPENWEBUI_BASE_URL, OPENWEBUI_API_KEY et OPENWEBUI_MODEL dans les secrets (env production) pour afficher « STPNeon OpenWebUI » dans l’assistant et le comparateur."
           fi
 
       - name: Deploy backend on Cloud Run
@@ -184,7 +184,8 @@ jobs:
           region: ${{ env.GCP_REGION }}
           image: ${{ needs.build-and-push.outputs.backend_image }}
           # Service backend public (accessible depuis le frontend et le navigateur)
-          flags: --port=8000 --allow-unauthenticated
+          # --timeout doit rester >= LLM_TIMEOUT (Open WebUI / RAG peut dépasser 120 s).
+          flags: --port=8000 --allow-unauthenticated --timeout=${{ vars.BACKEND_REQUEST_TIMEOUT_SECONDS || '900' }}
           env_vars: |-
             OPENROUTER_API_KEY=${{ secrets.OPENROUTER_API_KEY }}
             OPENWEBUI_BASE_URL=${{ secrets.OPENWEBUI_BASE_URL }}
@@ -199,6 +200,7 @@ jobs:
             QDRANT_URL=${{ needs.deploy-qdrant.outputs.qdrant_url }}
             ALLOWED_ORIGINS=${{ vars.ALLOWED_ORIGINS }}
             LLM_PROVIDER=openrouter
+            LLM_TIMEOUT=${{ vars.LLM_TIMEOUT_SECONDS || '300' }}
           env_vars_update_strategy: merge
 
       - name: Santé backend /health
